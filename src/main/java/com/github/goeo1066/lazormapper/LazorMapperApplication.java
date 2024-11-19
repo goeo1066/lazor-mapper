@@ -7,9 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.util.Map;
-
 import static com.github.goeo1066.lazormapper.LazorMapperBeanRegisterer.getRowMapperForRecord;
+import static com.github.goeo1066.lazormapper.LazorMapperBeanRegisterer.select;
 
 @SpringBootApplication
 public class LazorMapperApplication {
@@ -21,9 +20,9 @@ public class LazorMapperApplication {
     @Bean
     public ApplicationRunner applicationRunner(NamedParameterJdbcTemplate jdbcTemplate) {
         return args -> {
-            RowMapper<PersonInfo> personInfoRowMapper = getRowMapperForRecord(PersonInfo.class);
-            try (var stream = jdbcTemplate.queryForStream("SELECT * FROM person_info", Map.of(), personInfoRowMapper)) {
-                stream.forEach(System.out::println);
+            var result = select(PersonInfo.class, jdbcTemplate, null);
+            for (PersonInfo personInfo : result) {
+                System.out.println(personInfo);
             }
         };
     }

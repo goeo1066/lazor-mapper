@@ -1,8 +1,12 @@
 package com.github.goeo1066.lazormapper;
 
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table(name = "PERSON_INFO", schema = "PUBLIC")
 public record PersonInfo(
         String name,
         int age,
-        String address
+        String address,
+        String phoneNumber
 ) {
 }
