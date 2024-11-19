@@ -290,6 +290,8 @@ public class LazorMapperBeanRegisterer {
     }
 
     public static <T> List<T> select(Class<T> clazz, NamedParameterJdbcTemplate jdbcTemplate, String whereClauseTemplate) throws NoSuchMethodException {
+        // todo paging would go, with row_number() over() and order by along the way
+        // todo not sure about the where, order by structure
         RowMapper<T> rowMapper = getRowMapperForRecord(clazz);
         String selectSql = createSelectSql(clazz, "T", whereClauseTemplate);
         try (var stream = jdbcTemplate.queryForStream(selectSql, Map.of(), rowMapper)){
@@ -298,13 +300,13 @@ public class LazorMapperBeanRegisterer {
     }
 
     public static long count(Class<?> clazz, NamedParameterJdbcTemplate jdbcTemplate, String whereClauseTemplate) throws NoSuchMethodException {
-        String countSql = createCountSql(clazz, "T");
+        String countSql = createCountSql(clazz, "T", whereClauseTemplate);
         Long count = jdbcTemplate.queryForObject(countSql, Map.of(), Long.class);
         return count == null ? 0 : count;
     }
 
-    public static String createCountSql(Class<?> clazz, String mainTableAlias) throws NoSuchMethodException {
-        return createSelectSqlTemplate(clazz, mainTableAlias, "COUNT(*)", null);
+    public static String createCountSql(Class<?> clazz, String mainTableAlias, String whereClauseTemplate) throws NoSuchMethodException {
+        return createSelectSqlTemplate(clazz, mainTableAlias, "COUNT(*)", whereClauseTemplate);
     }
 
     public static String createSelectSql(Class<?> clazz, String mainTableAlias, String whereClauseTemplate) throws NoSuchMethodException {
