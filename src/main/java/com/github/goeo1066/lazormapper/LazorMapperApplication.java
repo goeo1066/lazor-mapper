@@ -4,10 +4,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import static com.github.goeo1066.lazormapper.LazorMapperBeanRegisterer.*;
+import org.springframework.util.StopWatch;
 
 @SpringBootApplication
 public class LazorMapperApplication {
@@ -17,14 +14,18 @@ public class LazorMapperApplication {
     }
 
     @Bean
-    public ApplicationRunner applicationRunner(NamedParameterJdbcTemplate jdbcTemplate) {
+    public ApplicationRunner applicationRunner(PersonRepository personRepository) {
         return args -> {
-            var result = select(PersonInfo.class, jdbcTemplate, "AGE > 30 AND AGE < 40");
-            var number = count(PersonInfo.class, jdbcTemplate, "AGE > 30 AND AGE < 40");
+            StopWatch stopWatch = new StopWatch();
+            stopWatch.start();
+            var result = personRepository.select("AGE > 30 AND AGE < 40");
+            var number = personRepository.count("AGE > 30 AND AGE < 40");
+
             for (PersonInfo personInfo : result) {
                 System.out.println(personInfo);
             }
-            System.out.println("Number of records: " + number);
+            stopWatch.stop();
+            System.out.printf("Number of records: %s (took %s)%n", number, stopWatch.shortSummary());
         };
     }
 }
