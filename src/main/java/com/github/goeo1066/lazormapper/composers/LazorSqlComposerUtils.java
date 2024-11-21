@@ -1,6 +1,6 @@
 package com.github.goeo1066.lazormapper.composers;
 
-import com.github.goeo1066.lazormapper.ThrowableBigFunction;
+import com.github.goeo1066.lazormapper.ThrowableFunction;
 import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
@@ -160,7 +160,7 @@ public class LazorSqlComposerUtils {
         return getDataRetriever(columnName, defaultValue, ResultSet::getInt);
     }
 
-    private static <T> Function<ResultSet, T> getDataRetriever(String columnName, T defaultValue, ThrowableBigFunction<ResultSet, String, T, Throwable> getter) {
+    private static <T> Function<ResultSet, T> getDataRetriever(String columnName, T defaultValue, ThrowableFunction<ResultSet, String, T, Throwable> getter) {
         return rs -> {
             try {
                 T value = getter.apply(rs, columnName);

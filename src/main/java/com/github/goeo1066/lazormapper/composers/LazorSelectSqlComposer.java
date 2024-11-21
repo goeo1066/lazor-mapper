@@ -1,9 +1,11 @@
 package com.github.goeo1066.lazormapper.composers;
 
-public interface LazorSelectSqlComposer {
-    String composeSelectSql(LazorTableInfo tableInfo, String whereClause);
+import com.github.goeo1066.lazormapper.repository.LazorSelectSpec;
 
-    String composeCountSql(LazorTableInfo tableInfo, String whereClause);
+public interface LazorSelectSqlComposer {
+    String composeSelectSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec);
+
+    String composeCountSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec);
 
     static LazorSelectSqlComposer createInstanceOf(String dbType) {
         if (dbType.equals("postgresql")) {

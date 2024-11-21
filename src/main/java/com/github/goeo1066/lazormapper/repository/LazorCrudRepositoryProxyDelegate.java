@@ -31,15 +31,15 @@ public class LazorCrudRepositoryProxyDelegate<S> {
         return new LazorCrudRepositoryProxyDelegate<>(composer, rowMapper, tableInfo);
     }
 
-    public List<S> select(NamedParameterJdbcTemplate jdbcTemplate, String whereClause) {
-        final String sql = composer.composeSelectSql(tableInfo, whereClause);
+    public List<S> select(NamedParameterJdbcTemplate jdbcTemplate, LazorSelectSpec selectSpec) {
+        final String sql = composer.composeSelectSql(tableInfo, selectSpec);
         try (var stream = jdbcTemplate.queryForStream(sql, Map.of(), rowMapper)) {
             return stream.toList();
         }
     }
 
-    public long count(NamedParameterJdbcTemplate jdbcTemplate, String whereClause) {
-        final String sql = composer.composeCountSql(tableInfo, whereClause);
+    public long count(NamedParameterJdbcTemplate jdbcTemplate, LazorSelectSpec selectSpec) {
+        final String sql = composer.composeCountSql(tableInfo, selectSpec);
         Long count = jdbcTemplate.queryForObject(sql, Map.of(), Long.class);
         return count == null ? 0 : count;
     }

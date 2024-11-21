@@ -98,10 +98,10 @@ public class LazorRepositoryRegisterer {
         LazorCrudRepositoryProxyDelegate<S> delegate = LazorCrudRepositoryProxyDelegate.create(entityClass, "postgresql");
         return (T) Proxy.newProxyInstance(subInterfaceClass.getClassLoader(), new Class[]{subInterfaceClass}, (o, method, objects) -> {
             if ("select".equals(method.getName())) {
-                return delegate.select(jdbcTemplate, (String) objects[0]);
+                return delegate.select(jdbcTemplate, (LazorSelectSpec) objects[0]);
             }
             if ("count".equals(method.getName())) {
-                return delegate.count(jdbcTemplate, (String) objects[0]);
+                return delegate.count(jdbcTemplate, (LazorSelectSpec) objects[0]);
             }
             return InvocationHandler.invokeDefault(o, method, objects);
         });

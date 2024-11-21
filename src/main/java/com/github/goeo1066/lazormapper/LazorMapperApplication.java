@@ -1,5 +1,6 @@
 package com.github.goeo1066.lazormapper;
 
+import com.github.goeo1066.lazormapper.repository.LazorSelectSpec;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,8 +19,14 @@ public class LazorMapperApplication {
         return args -> {
             StopWatch stopWatch = new StopWatch();
             stopWatch.start();
-            var result = personRepository.select("AGE > 30 AND AGE < 40");
-            var number = personRepository.count("AGE > 30 AND AGE < 40");
+            var selectSpec = LazorSelectSpec.builder()
+                    .whereClause("age > 30 AND age < 50")
+                    .orderByClause("age DESC")
+                    .limit(10)
+                    .offset(0)
+                    .build();
+            var result = personRepository.select(selectSpec);
+            var number = personRepository.count(selectSpec.withoutPaging());
 
             for (PersonInfo personInfo : result) {
                 System.out.println(personInfo);
