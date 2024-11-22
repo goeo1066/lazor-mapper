@@ -1,11 +1,13 @@
 package com.github.goeo1066.lazormapper;
 
-import com.github.goeo1066.lazormapper.repository.LazorSelectSpec;
+import com.github.goeo1066.lazormapper.composers.LazorSelectSpec;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StopWatch;
+
+import java.util.List;
 
 @SpringBootApplication
 public class LazorMapperApplication {
@@ -33,6 +35,9 @@ public class LazorMapperApplication {
             }
             stopWatch.stop();
             System.out.printf("Number of records: %s (took %s)%n", number, stopWatch.shortSummary());
+
+            PersonInfo personInfo = new PersonInfo(0, "John Test", 40, "address");
+            personRepository.insert(List.of(personInfo));
         };
     }
 }

@@ -1,15 +1,15 @@
 package com.github.goeo1066.lazormapper.composers;
 
-import com.github.goeo1066.lazormapper.repository.LazorSelectSpec;
+public interface LazorSelectSqlComposer<S> {
+    String composeSelectSql(LazorTableInfo<S> tableInfo, LazorSelectSpec selectSpec);
 
-public interface LazorSelectSqlComposer {
-    String composeSelectSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec);
+    String composeCountSql(LazorTableInfo<S> tableInfo, LazorSelectSpec selectSpec);
 
-    String composeCountSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec);
+    String composeSelectTestSql(LazorTableInfo<S> tableInfo);
 
-    static LazorSelectSqlComposer createInstanceOf(String dbType) {
+    static <S> LazorSelectSqlComposer<S> createInstanceOf(String dbType) {
         if (dbType.equals("postgresql")) {
-            return new LazorSelectSqlComposerPostgreSQL();
+            return new LazorSelectSqlComposerPostgreSQL<S>();
         }
         throw new RuntimeException("Unsupported database type: " + dbType);
     }

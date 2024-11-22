@@ -1,20 +1,21 @@
 package com.github.goeo1066.lazormapper.composers;
 
 import com.github.goeo1066.lazormapper.ThrowableFunction;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 public class LazorSqlComposerUtils {
-    public static LazorTableInfo retrieveTableInfo(Class<?> clazz) {
+    public static <S> LazorTableInfo<S> retrieveTableInfo(Class<S> clazz) throws NoSuchMethodException {
         Table table = clazz.getAnnotation(Table.class);
         if (table == null) {
             throw new RuntimeException("No @Table annotation found");
@@ -27,7 +28,34 @@ public class LazorSqlComposerUtils {
             tableName = camelToSnake(clazz.getName(), true);
         }
 
-        return new LazorTableInfo(schema, tableName);
+        var fieldInfoList = retrieveColumnInfo(clazz);
+        var primaryKeyInfoList = fieldInfoList.stream().filter(LazorTableInfo.LazorColumnInfo::isPrimaryKey).toList();
+        var rowMapper = getRowMapperForRecord(clazz, fieldInfoList);
+        return new LazorTableInfo<>(schema, tableName, fieldInfoList, primaryKeyInfoList, rowMapper);
+    }
+
+    public static List<LazorTableInfo.LazorColumnInfo> retrieveColumnInfo(Class<?> clazz) {
+        if (!clazz.isRecord()) {
+            throw new RuntimeException("Not a record class");
+        }
+        var recordComponents = clazz.getRecordComponents();
+        if (recordComponents.length < 1) {
+            throw new RuntimeException("Record class must have exactly one component");
+        }
+        var recordFieldArray = new LazorTableInfo.LazorColumnInfo[recordComponents.length];
+        for (int i = 0; i < recordComponents.length; i++) {
+            var builder = LazorTableInfo.LazorColumnInfo.builder();
+            builder.columnName(camelToSnake(recordComponents[i].getName(), true));
+            builder.fieldName(recordComponents[i].getName());
+            builder.fieldType(recordComponents[i].getType());
+            Method accessor = recordComponents[i].getAccessor();
+            if (accessor != null) {
+                builder.isPrimaryKey(accessor.isAnnotationPresent(Id.class));
+                builder.isTransient(accessor.isAnnotationPresent(Transient.class));
+            }
+            recordFieldArray[i] = builder.build();
+        }
+        return List.of(recordFieldArray);
     }
 
     private static String camelToSnake(String camel, boolean isUpper) {
@@ -52,43 +80,30 @@ public class LazorSqlComposerUtils {
     }
 
     @SuppressWarnings("rawtypes")
-    public static <S> RowMapper<S> getRowMapperForRecord(Class<S> entityClass) throws NoSuchMethodException {
-        if (!entityClass.isRecord()) {
-            throw new RuntimeException("Not a record class");
-        }
-        var recordComponents = entityClass.getRecordComponents();
-        var recordFieldArray = new FieldColumnInfo[recordComponents.length];
-        for (int i = 0; i < recordComponents.length; i++) {
-            recordFieldArray[i] = new FieldColumnInfo();
-            recordFieldArray[i].columnName = camelToSnake(recordComponents[i].getName(), true);
-            recordFieldArray[i].fieldType = recordComponents[i].getType();
-//            recordFieldNames[i] = camelToSnake(recordComponents[i].getName(), true);
-        }
-
-        Function[] retrievers = new Function[recordFieldArray.length];
-        for (int i = 0; i < recordFieldArray.length; i++) {
-            FieldColumnInfo fieldColumnInfo = recordFieldArray[i];
-            if (fieldColumnInfo.fieldType == String.class) {
-                retrievers[i] = getDataRetrieverString(fieldColumnInfo.columnName, null);
-            } else if (fieldColumnInfo.fieldType == Long.class) {
-                retrievers[i] = getDataRetrieverLong(fieldColumnInfo.columnName, null);
-            } else if (fieldColumnInfo.fieldType == long.class) {
-                retrievers[i] = getDataRetrieverLong(fieldColumnInfo.columnName, 0L);
-            } else if (fieldColumnInfo.fieldType == Integer.class) {
-                retrievers[i] = getDataRetrieverInt(fieldColumnInfo.columnName, null);
-            } else if (fieldColumnInfo.fieldType == int.class) {
-                retrievers[i] = getDataRetrieverInt(fieldColumnInfo.columnName, 0);
+    public static <S> RowMapper<S> getRowMapperForRecord(Class<S> clazz, List<LazorTableInfo.LazorColumnInfo> columnInfoList) throws NoSuchMethodException {
+        Function[] retrievers = new Function[columnInfoList.size()];
+        Class[] fieldTypes = new Class[columnInfoList.size()];
+        for (int i = 0; i < columnInfoList.size(); i++) {
+            LazorTableInfo.LazorColumnInfo columnInfo = columnInfoList.get(i);
+            Class fieldType = columnInfo.fieldType();
+            String columnName = columnInfo.columnName();
+            if (fieldType == String.class) {
+                retrievers[i] = getDataRetrieverString(columnName, null);
+            } else if (fieldType == Long.class) {
+                retrievers[i] = getDataRetrieverLong(columnName, null);
+            } else if (fieldType == long.class) {
+                retrievers[i] = getDataRetrieverLong(columnName, 0L);
+            } else if (fieldType == Integer.class) {
+                retrievers[i] = getDataRetrieverInt(columnName, null);
+            } else if (fieldType == int.class) {
+                retrievers[i] = getDataRetrieverInt(columnName, 0);
             } else {
-                throw new RuntimeException("Unsupported field type: " + fieldColumnInfo.fieldType);
+                throw new RuntimeException("Unsupported field type: " + fieldType);
             }
+            fieldTypes[i] = fieldType;
         }
 
-        Class[] fieldTypes = new Class[recordFieldArray.length];
-        for (int i = 0; i < recordFieldArray.length; i++) {
-            fieldTypes[i] = recordFieldArray[i].fieldType;
-        }
-        var constructor = entityClass.getConstructor(fieldTypes);
-
+        var constructor = clazz.getConstructor(fieldTypes);
         return new RowMapper<>() {
             private Set<String> existingColumns = null;
 
@@ -98,11 +113,11 @@ public class LazorSqlComposerUtils {
                 if (existingColumns == null) {
                     existingColumns = loadExistingColumns(rs);
                 }
-                Object[] initializers = new Object[recordFieldArray.length];
-                for (int i = 0; i < recordFieldArray.length; i++) {
-                    String columnName = recordFieldArray[i].columnName;
+                Object[] initializers = new Object[columnInfoList.size()];
+                for (int i = 0; i < columnInfoList.size(); i++) {
+                    String columnName = columnInfoList.get(i).columnName();
                     if (!existingColumns.contains(columnName.toUpperCase()) || retrievers[i] == null) {
-                        initializers[i] = getNullOrDefault(recordFieldArray[i].fieldType);
+                        initializers[i] = getNullOrDefault(columnInfoList.get(i).fieldType());
                     } else {
                         initializers[i] = retrievers[i].apply(rs);
                     }
@@ -114,6 +129,15 @@ public class LazorSqlComposerUtils {
                 }
             }
         };
+    }
+
+    private static Set<String> loadExistingColumns(ResultSet rs) throws SQLException {
+        int columnCount = rs.getMetaData().getColumnCount();
+        Set<String> result = new HashSet<>();
+        for (int i = 1; i <= columnCount; i++) {
+            result.add(rs.getMetaData().getColumnName(i).toUpperCase());
+        }
+        return Collections.unmodifiableSet(result);
     }
 
     private static Object getNullOrDefault(Class<?> clazz) {
@@ -136,16 +160,6 @@ public class LazorSqlComposerUtils {
         } else {
             return null;
         }
-    }
-
-
-    private static Set<String> loadExistingColumns(ResultSet rs) throws SQLException {
-        int columnCount = rs.getMetaData().getColumnCount();
-        Set<String> result = new HashSet<>();
-        for (int i = 1; i <= columnCount; i++) {
-            result.add(rs.getMetaData().getColumnName(i).toUpperCase());
-        }
-        return Collections.unmodifiableSet(result);
     }
 
     private static Function<ResultSet, String> getDataRetrieverString(String columnName, String defaultValue) {
@@ -174,8 +188,36 @@ public class LazorSqlComposerUtils {
         };
     }
 
-    private static class FieldColumnInfo {
-        private String columnName;
-        private Class<?> fieldType;
+    public static <T> Iterable<List<T>> partition(Collection<T> partition, int partitionSize) {
+        Iterator<T> iterator = partition.iterator();
+        return new Iterable<>() {
+            @Override
+            @NonNull
+            public Iterator<List<T>> iterator() {
+                return new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    @Override
+                    public List<T> next() {
+                        return readNext();
+                    }
+
+                    private List<T> readNext() {
+                        List<T> result = new ArrayList<>(partitionSize);
+                        for (int i = 0; i < partitionSize; i++) {
+                            if (iterator.hasNext()) {
+                                result.add(iterator.next());
+                            } else {
+                                break;
+                            }
+                        }
+                        return result;
+                    }
+                };
+            }
+        };
     }
 }

@@ -1,5 +1,7 @@
 package com.github.goeo1066.lazormapper.repository;
 
+import com.github.goeo1066.lazormapper.composers.LazorInsertSpec;
+import com.github.goeo1066.lazormapper.composers.LazorSelectSpec;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +104,11 @@ public class LazorRepositoryRegisterer {
             }
             if ("count".equals(method.getName())) {
                 return delegate.count(jdbcTemplate, (LazorSelectSpec) objects[0]);
+            }
+            if ("insert".equals(method.getName())) {
+                var list = (List<S>) objects[0];
+                delegate.insert(jdbcTemplate, list);
+                return null;
             }
             return InvocationHandler.invokeDefault(o, method, objects);
         });

@@ -1,28 +1,34 @@
 package com.github.goeo1066.lazormapper.composers;
 
-import com.github.goeo1066.lazormapper.repository.LazorSelectSpec;
-
-public class LazorSelectSqlComposerPostgreSQL implements LazorSelectSqlComposer {
+public class LazorSelectSqlComposerPostgreSQL<S> implements LazorSelectSqlComposer<S> {
 
     @Override
-    public String composeSelectSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec) {
+    public String composeSelectSql(LazorTableInfo<S> tableInfo, LazorSelectSpec selectSpec) {
         return createSelectSql(tableInfo, "T", selectSpec);
     }
 
     @Override
-    public String composeCountSql(LazorTableInfo tableInfo, LazorSelectSpec selectSpec) {
+    public String composeCountSql(LazorTableInfo<S> tableInfo, LazorSelectSpec selectSpec) {
         return createCountSql(tableInfo, "T", selectSpec);
     }
 
-    public String createSelectSql(LazorTableInfo tableInfo, String mainTableAlias, LazorSelectSpec selectSpec) {
+    @Override
+    public String composeSelectTestSql(LazorTableInfo<S> tableInfo) {
+        LazorSelectSpec selectSpec = LazorSelectSpec.builder()
+                .whereClause("1 = 0")
+                .build();
+        return createSelectSql(tableInfo, "T", selectSpec);
+    }
+
+    private String createSelectSql(LazorTableInfo<S> tableInfo, String mainTableAlias, LazorSelectSpec selectSpec) {
         return createSelectSqlTemplate(tableInfo, mainTableAlias, "*", selectSpec);
     }
 
-    public String createCountSql(LazorTableInfo tableInfo, String mainTableAlias, LazorSelectSpec selectSpec) {
+    private String createCountSql(LazorTableInfo<S> tableInfo, String mainTableAlias, LazorSelectSpec selectSpec) {
         return createSelectSqlTemplate(tableInfo, mainTableAlias, "COUNT(*)", selectSpec);
     }
 
-    public String createSelectSqlTemplate(LazorTableInfo tableInfo, String mainTableAlias, String columnReplacer, LazorSelectSpec selectSpec) {
+    private String createSelectSqlTemplate(LazorTableInfo<S> tableInfo, String mainTableAlias, String columnReplacer, LazorSelectSpec selectSpec) {
         String createSelectSqlTemplate = createSelectSubSqlTemplate(tableInfo, "S", selectSpec);
         String selectSql = "SELECT " + columnReplacer + " FROM (" + createSelectSqlTemplate + ") " + mainTableAlias;
 
@@ -37,7 +43,7 @@ public class LazorSelectSqlComposerPostgreSQL implements LazorSelectSqlComposer 
         return selectSql;
     }
 
-    public String createSelectSubSqlTemplate(LazorTableInfo tableInfo, String tableAlias, LazorSelectSpec selectSpec) {
+    private String createSelectSubSqlTemplate(LazorTableInfo<S> tableInfo, String tableAlias, LazorSelectSpec selectSpec) {
         String tableName = tableInfo.tableFullName();
 
         String selectSql = "SELECT " + tableAlias + ".* FROM " + tableName + " " + tableAlias;
