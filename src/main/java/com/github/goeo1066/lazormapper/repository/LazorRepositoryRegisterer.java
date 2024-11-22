@@ -99,16 +99,18 @@ public class LazorRepositoryRegisterer {
     public <S, T extends LazorCrudRepository> T getInstance(Class<T> subInterfaceClass, Class<S> entityClass, NamedParameterJdbcTemplate jdbcTemplate) throws NoSuchMethodException {
         LazorCrudRepositoryProxyDelegate<S> delegate = LazorCrudRepositoryProxyDelegate.create(entityClass, "postgresql");
         return (T) Proxy.newProxyInstance(subInterfaceClass.getClassLoader(), new Class[]{subInterfaceClass}, (o, method, objects) -> {
-            if ("select".equals(method.getName())) {
-                return delegate.select(jdbcTemplate, (LazorSelectSpec) objects[0]);
-            }
-            if ("count".equals(method.getName())) {
-                return delegate.count(jdbcTemplate, (LazorSelectSpec) objects[0]);
-            }
-            if ("insert".equals(method.getName())) {
-                var list = (List<S>) objects[0];
-                delegate.insert(jdbcTemplate, list);
-                return null;
+            switch (method.getName()) {
+                case "select" -> {
+                    return delegate.select(jdbcTemplate, (LazorSelectSpec) objects[0]);
+                }
+                case "count" -> {
+                    return delegate.count(jdbcTemplate, (LazorSelectSpec) objects[0]);
+                }
+                case "insert" -> {
+                    var list = (List<S>) objects[0];
+                    delegate.insert(jdbcTemplate, list);
+                    return null;
+                }
             }
             return InvocationHandler.invokeDefault(o, method, objects);
         });

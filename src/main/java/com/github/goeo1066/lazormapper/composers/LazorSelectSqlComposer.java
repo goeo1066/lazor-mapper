@@ -9,7 +9,7 @@ public interface LazorSelectSqlComposer<S> {
 
     static <S> LazorSelectSqlComposer<S> createInstanceOf(String dbType) {
         if (dbType.equals("postgresql")) {
-            return new LazorSelectSqlComposerPostgreSQL<S>();
+            return new LazorSelectSqlComposerPostgreSQL<>();
         }
         throw new RuntimeException("Unsupported database type: " + dbType);
     }
