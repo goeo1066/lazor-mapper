@@ -1,6 +1,6 @@
 package com.github.goeo1066.lazormapper;
 
-import com.github.goeo1066.lazormapper.composers.LazorSelectSpec;
+import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -37,7 +37,8 @@ public class LazorMapperApplication {
             System.out.printf("Number of records: %s (took %s)%n", number, stopWatch.shortSummary());
 
             PersonInfo personInfo = new PersonInfo(0, "John Test", 40, "address");
-            personRepository.insert(List.of(personInfo));
+            List<PersonInfo> newResult = personRepository.insert(List.of(personInfo));
+            System.out.println(newResult);
         };
     }
 }

@@ -1,5 +1,7 @@
-package com.github.goeo1066.lazormapper.composers;
+package com.github.goeo1066.lazormapper.composers.insert;
 
+import com.github.goeo1066.lazormapper.composers.LazorColumnInfo;
+import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
 import org.slf4j.Logger;
 
 import java.util.stream.Collectors;
@@ -23,7 +25,7 @@ public class LazorInsertSqlComposerPostgreSQL<S> implements LazorInsertSqlCompos
     private String columnNameListForInsert(LazorTableInfo<S> tableInfo) {
         return tableInfo.columnInfoList().stream()
                 .filter(columnInfo -> !columnInfo.isTransient())
-                .map(LazorTableInfo.LazorColumnInfo::columnName)
+                .map(LazorColumnInfo::columnName)
                 .collect(Collectors.joining(", "));
     }
 

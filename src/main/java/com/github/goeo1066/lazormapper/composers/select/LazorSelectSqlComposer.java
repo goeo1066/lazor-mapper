@@ -1,4 +1,6 @@
-package com.github.goeo1066.lazormapper.composers;
+package com.github.goeo1066.lazormapper.composers.select;
+
+import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
 
 public interface LazorSelectSqlComposer<S> {
     String composeSelectSql(LazorTableInfo<S> tableInfo, LazorSelectSpec selectSpec);

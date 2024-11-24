@@ -1,4 +1,4 @@
-package com.github.goeo1066.lazormapper.composers;
+package com.github.goeo1066.lazormapper.composers.insert;
 
 import java.util.List;
 

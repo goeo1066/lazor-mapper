@@ -29,12 +29,12 @@ public class LazorSqlComposerUtils {
         }
 
         var fieldInfoList = retrieveColumnInfo(clazz);
-        var primaryKeyInfoList = fieldInfoList.stream().filter(LazorTableInfo.LazorColumnInfo::isPrimaryKey).toList();
+        var primaryKeyInfoList = fieldInfoList.stream().filter(LazorColumnInfo::isPrimaryKey).toList();
         var rowMapper = getRowMapperForRecord(clazz, fieldInfoList);
         return new LazorTableInfo<>(schema, tableName, fieldInfoList, primaryKeyInfoList, rowMapper);
     }
 
-    public static List<LazorTableInfo.LazorColumnInfo> retrieveColumnInfo(Class<?> clazz) {
+    public static List<LazorColumnInfo> retrieveColumnInfo(Class<?> clazz) {
         if (!clazz.isRecord()) {
             throw new RuntimeException("Not a record class");
         }
@@ -42,9 +42,9 @@ public class LazorSqlComposerUtils {
         if (recordComponents.length < 1) {
             throw new RuntimeException("Record class must have exactly one component");
         }
-        var recordFieldArray = new LazorTableInfo.LazorColumnInfo[recordComponents.length];
+        var recordFieldArray = new LazorColumnInfo[recordComponents.length];
         for (int i = 0; i < recordComponents.length; i++) {
-            var builder = LazorTableInfo.LazorColumnInfo.builder();
+            var builder = LazorColumnInfo.builder();
             builder.columnName(camelToSnake(recordComponents[i].getName(), true));
             builder.fieldName(recordComponents[i].getName());
             builder.fieldType(recordComponents[i].getType());
@@ -80,11 +80,11 @@ public class LazorSqlComposerUtils {
     }
 
     @SuppressWarnings("rawtypes")
-    public static <S> RowMapper<S> getRowMapperForRecord(Class<S> clazz, List<LazorTableInfo.LazorColumnInfo> columnInfoList) throws NoSuchMethodException {
+    public static <S> RowMapper<S> getRowMapperForRecord(Class<S> clazz, List<LazorColumnInfo> columnInfoList) throws NoSuchMethodException {
         Function[] retrievers = new Function[columnInfoList.size()];
         Class[] fieldTypes = new Class[columnInfoList.size()];
         for (int i = 0; i < columnInfoList.size(); i++) {
-            LazorTableInfo.LazorColumnInfo columnInfo = columnInfoList.get(i);
+            LazorColumnInfo columnInfo = columnInfoList.get(i);
             Class fieldType = columnInfo.fieldType();
             String columnName = columnInfo.columnName();
             if (fieldType == String.class) {

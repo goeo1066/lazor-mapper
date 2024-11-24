@@ -1,4 +1,4 @@
-package com.github.goeo1066.lazormapper.composers;
+package com.github.goeo1066.lazormapper.composers.select;
 
 
 public record LazorSelectSpec(String whereClause, String orderByClause, Long limit, Long offset) {

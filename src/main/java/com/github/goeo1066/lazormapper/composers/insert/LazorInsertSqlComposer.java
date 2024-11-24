@@ -1,4 +1,6 @@
-package com.github.goeo1066.lazormapper.composers;
+package com.github.goeo1066.lazormapper.composers.insert;
+
+import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
 
 public interface LazorInsertSqlComposer<S> {
     String composeInsertSql(LazorTableInfo<S> tableInfo, LazorInsertSpec<S> insertSpec);
