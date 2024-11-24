@@ -17,7 +17,6 @@ public class LazorCrudRepositoryProxyDelegate<S> {
     private final LazorInsertSqlComposer<S> insertSqlComposer;
     private final RecordKeyAssignerImpl<S> recordKeyAssigner;
     private final LazorTableInfo<S> tableInfo;
-    private Set<String> columnNames;
 
     public LazorCrudRepositoryProxyDelegate(
             Class<S> entityClass,
