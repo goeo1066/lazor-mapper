@@ -1,7 +1,6 @@
 package com.github.goeo1066.lazormapper.composers.update;
 
 import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
-import com.github.goeo1066.lazormapper.composers.insert.LazorInsertSpec;
 
 public interface LazorUpdateSqlComposer<S> {
     String composeUpdateSql(LazorTableInfo<S> tableInfo, LazorUpdateSpec<S> updateSpec);

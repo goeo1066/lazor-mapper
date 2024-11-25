@@ -2,7 +2,6 @@ package com.github.goeo1066.lazormapper.composers.update;
 
 import com.github.goeo1066.lazormapper.composers.LazorColumnInfo;
 import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
-import com.github.goeo1066.lazormapper.composers.insert.LazorInsertSqlComposerPostgreSQL;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
