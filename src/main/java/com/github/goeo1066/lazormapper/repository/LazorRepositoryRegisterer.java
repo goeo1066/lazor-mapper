@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -106,8 +107,13 @@ public class LazorRepositoryRegisterer {
                     return delegate.count(jdbcTemplate, (LazorSelectSpec) objects[0]);
                 }
                 case "insert" -> {
-                    var list = (List<S>) objects[0];
+                    var list = (Collection<S>) objects[0];
                     return delegate.insert(jdbcTemplate, list);
+                }
+                case "update" -> {
+                    var list = (Collection<S>) objects[0];
+                    delegate.update(jdbcTemplate, list);
+                    return null;
                 }
             }
             return InvocationHandler.invokeDefault(o, method, objects);

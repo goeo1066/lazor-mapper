@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StopWatch;
 
+import java.util.Collections;
 import java.util.List;
 
 @SpringBootApplication
@@ -39,6 +40,14 @@ public class LazorMapperApplication {
             PersonInfo personInfo = new PersonInfo(0, "John Test", 40, "address");
             List<PersonInfo> newResult = personRepository.insert(List.of(personInfo));
             System.out.println(newResult);
+
+            PersonInfo personInfo2 = new PersonInfo(
+                    newResult.get(0).idx(), "John Test", 40, "addresses");
+            personRepository.update(Collections.singleton(personInfo2));
+            var newPersonInfo = personRepository.select(LazorSelectSpec.builder()
+                    .whereClause("IDX = " + personInfo2.idx())
+                    .build());
+            System.out.println(newPersonInfo);
         };
     }
 }

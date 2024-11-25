@@ -1,20 +1,26 @@
 package com.github.goeo1066.lazormapper.repository;
 
-import com.github.goeo1066.lazormapper.composers.*;
+import com.github.goeo1066.lazormapper.composers.LazorSqlComposerUtils;
+import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
 import com.github.goeo1066.lazormapper.composers.insert.LazorInsertSqlComposer;
 import com.github.goeo1066.lazormapper.composers.key.RecordKeyAssignerImpl;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSqlComposer;
+import com.github.goeo1066.lazormapper.composers.update.LazorUpdateSqlComposer;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class LazorCrudRepositoryProxyDelegate<S> {
     private final LazorSelectSqlComposer<S> selectSqlComposer;
     private final LazorInsertSqlComposer<S> insertSqlComposer;
+    private final LazorUpdateSqlComposer<S> updateSqlComposer;
     private final RecordKeyAssignerImpl<S> recordKeyAssigner;
     private final LazorTableInfo<S> tableInfo;
 
@@ -22,19 +28,28 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             Class<S> entityClass,
             LazorSelectSqlComposer<S> selectSqlComposer,
             LazorInsertSqlComposer<S> insertSqlComposer,
+            LazorUpdateSqlComposer<S> updateSqlComposer,
             LazorTableInfo<S> tableInfo
     ) {
         this.recordKeyAssigner = new RecordKeyAssignerImpl<>(entityClass, tableInfo.columnInfoList());
         this.selectSqlComposer = selectSqlComposer;
         this.insertSqlComposer = insertSqlComposer;
+        this.updateSqlComposer = updateSqlComposer;
         this.tableInfo = tableInfo;
     }
 
     public static <S> LazorCrudRepositoryProxyDelegate<S> create(Class<S> entityClass, String dbType) throws NoSuchMethodException {
         LazorSelectSqlComposer<S> selectComposer = LazorSelectSqlComposer.createInstanceOf(dbType);
         LazorInsertSqlComposer<S> insertComposer = LazorInsertSqlComposer.createInstanceOf(dbType);
+        LazorUpdateSqlComposer<S> updateComposer = LazorUpdateSqlComposer.createInstanceOf(dbType);
         LazorTableInfo<S> tableInfo = LazorSqlComposerUtils.retrieveTableInfo(entityClass);
-        return new LazorCrudRepositoryProxyDelegate<>(entityClass, selectComposer, insertComposer, tableInfo);
+        return new LazorCrudRepositoryProxyDelegate<>(
+                entityClass,
+                selectComposer,
+                insertComposer,
+                updateComposer,
+                tableInfo
+        );
     }
 
     public List<S> select(NamedParameterJdbcTemplate jdbcTemplate, LazorSelectSpec selectSpec) {
@@ -74,5 +89,16 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             }
         }
         return result;
+    }
+
+    public void update(NamedParameterJdbcTemplate jdbcTemplate, Collection<S> entities) {
+        final String sql = updateSqlComposer.composeUpdateSql(tableInfo, null);
+        for (List<S> entitySublist : LazorSqlComposerUtils.partition(entities, 500)) {
+            BeanPropertySqlParameterSource[] sqlParameterSources = new BeanPropertySqlParameterSource[entitySublist.size()];
+            for (int i = 0; i < entitySublist.size(); i++) {
+                sqlParameterSources[i] = new BeanPropertySqlParameterSource(entitySublist.get(i));
+            }
+            jdbcTemplate.batchUpdate(sql, sqlParameterSources);
+        }
     }
 }
