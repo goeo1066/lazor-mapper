@@ -1,14 +1,12 @@
 package com.github.goeo1066.lazormapper;
 
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
-import com.github.goeo1066.lazormapper.composers.upsert.LazorUpsertSpec;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StopWatch;
 
-import java.util.Collections;
 import java.util.List;
 
 @SpringBootApplication
@@ -33,7 +31,7 @@ public class LazorMapperApplication {
             var number = personRepository.count(selectSpec.withoutPaging());
 
             PersonInfo personInfo3 = new PersonInfo(
-                0, "John Test a", 40, "addresses"
+                    0, "John Test a", 40, "addresses"
             );
             personRepository.upsert(List.of(personInfo3), null);
         };
