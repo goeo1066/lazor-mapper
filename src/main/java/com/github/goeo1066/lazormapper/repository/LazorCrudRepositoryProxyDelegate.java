@@ -7,6 +7,8 @@ import com.github.goeo1066.lazormapper.composers.key.RecordKeyAssignerImpl;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSqlComposer;
 import com.github.goeo1066.lazormapper.composers.update.LazorUpdateSqlComposer;
+import com.github.goeo1066.lazormapper.composers.upsert.LazorUpsertSpec;
+import com.github.goeo1066.lazormapper.composers.upsert.LazorUpsertSqlComposer;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -21,6 +23,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
     private final LazorSelectSqlComposer<S> selectSqlComposer;
     private final LazorInsertSqlComposer<S> insertSqlComposer;
     private final LazorUpdateSqlComposer<S> updateSqlComposer;
+    private final LazorUpsertSqlComposer<S> upsertSqlComposer;
     private final RecordKeyAssignerImpl<S> recordKeyAssigner;
     private final LazorTableInfo<S> tableInfo;
 
@@ -29,12 +32,14 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             LazorSelectSqlComposer<S> selectSqlComposer,
             LazorInsertSqlComposer<S> insertSqlComposer,
             LazorUpdateSqlComposer<S> updateSqlComposer,
+            LazorUpsertSqlComposer<S> upsertSqlComposer,
             LazorTableInfo<S> tableInfo
     ) {
         this.recordKeyAssigner = new RecordKeyAssignerImpl<>(entityClass, tableInfo.columnInfoList());
         this.selectSqlComposer = selectSqlComposer;
         this.insertSqlComposer = insertSqlComposer;
         this.updateSqlComposer = updateSqlComposer;
+        this.upsertSqlComposer = upsertSqlComposer;
         this.tableInfo = tableInfo;
     }
 
@@ -42,12 +47,14 @@ public class LazorCrudRepositoryProxyDelegate<S> {
         LazorSelectSqlComposer<S> selectComposer = LazorSelectSqlComposer.createInstanceOf(dbType);
         LazorInsertSqlComposer<S> insertComposer = LazorInsertSqlComposer.createInstanceOf(dbType);
         LazorUpdateSqlComposer<S> updateComposer = LazorUpdateSqlComposer.createInstanceOf(dbType);
+        LazorUpsertSqlComposer<S> upsertComposer = LazorUpsertSqlComposer.createInstanceOf(dbType);
         LazorTableInfo<S> tableInfo = LazorSqlComposerUtils.retrieveTableInfo(entityClass);
         return new LazorCrudRepositoryProxyDelegate<>(
                 entityClass,
                 selectComposer,
                 insertComposer,
                 updateComposer,
+                upsertComposer,
                 tableInfo
         );
     }
@@ -100,5 +107,31 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             }
             jdbcTemplate.batchUpdate(sql, sqlParameterSources);
         }
+    }
+
+    public List<S> upsert(NamedParameterJdbcTemplate jdbcTemplate, Collection<S> entities, LazorUpsertSpec<S> upsertSpec) {
+        final String sql = upsertSqlComposer.composeUpsertSql(tableInfo, upsertSpec);
+        List<S> result = new ArrayList<>(entities.size());
+        for (List<S> entitySublist : LazorSqlComposerUtils.partition(entities, 500)) {
+            GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
+            BeanPropertySqlParameterSource[] sqlParameterSources = new BeanPropertySqlParameterSource[entitySublist.size()];
+            for (int i = 0; i < entitySublist.size(); i++) {
+                sqlParameterSources[i] = new BeanPropertySqlParameterSource(entitySublist.get(i));
+            }
+            jdbcTemplate.batchUpdate(sql, sqlParameterSources, keyHolder);
+
+            for (int i = 0; i < entitySublist.size(); i++) {
+                S entity = entitySublist.get(i);
+                var keyMap = keyHolder.getKeyList().get(i);
+                try {
+                    S newEntity = recordKeyAssigner.assignKeys(entity, keyMap);
+                    result.add(newEntity);
+                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException |
+                         InstantiationException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return result;
     }
 }
