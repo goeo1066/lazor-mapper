@@ -2,6 +2,8 @@ package com.github.goeo1066.lazormapper.repository;
 
 import com.github.goeo1066.lazormapper.composers.LazorSqlComposerUtils;
 import com.github.goeo1066.lazormapper.composers.LazorTableInfo;
+import com.github.goeo1066.lazormapper.composers.delete.LazorDeleteSpec;
+import com.github.goeo1066.lazormapper.composers.delete.LazorDeleteSqlComposer;
 import com.github.goeo1066.lazormapper.composers.insert.LazorInsertSqlComposer;
 import com.github.goeo1066.lazormapper.composers.key.RecordKeyAssignerImpl;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
@@ -24,6 +26,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
     private final LazorInsertSqlComposer<S> insertSqlComposer;
     private final LazorUpdateSqlComposer<S> updateSqlComposer;
     private final LazorUpsertSqlComposer<S> upsertSqlComposer;
+    private final LazorDeleteSqlComposer<S> deleteSqlComposer;
     private final RecordKeyAssignerImpl<S> recordKeyAssigner;
     private final LazorTableInfo<S> tableInfo;
 
@@ -33,6 +36,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             LazorInsertSqlComposer<S> insertSqlComposer,
             LazorUpdateSqlComposer<S> updateSqlComposer,
             LazorUpsertSqlComposer<S> upsertSqlComposer,
+            LazorDeleteSqlComposer<S> deleteSqlComposer,
             LazorTableInfo<S> tableInfo
     ) {
         this.recordKeyAssigner = new RecordKeyAssignerImpl<>(entityClass, tableInfo.columnInfoList());
@@ -40,6 +44,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
         this.insertSqlComposer = insertSqlComposer;
         this.updateSqlComposer = updateSqlComposer;
         this.upsertSqlComposer = upsertSqlComposer;
+        this.deleteSqlComposer = deleteSqlComposer;
         this.tableInfo = tableInfo;
     }
 
@@ -48,6 +53,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
         LazorInsertSqlComposer<S> insertComposer = LazorInsertSqlComposer.createInstanceOf(dbType);
         LazorUpdateSqlComposer<S> updateComposer = LazorUpdateSqlComposer.createInstanceOf(dbType);
         LazorUpsertSqlComposer<S> upsertComposer = LazorUpsertSqlComposer.createInstanceOf(dbType);
+        LazorDeleteSqlComposer<S> deleteComposer = LazorDeleteSqlComposer.createInstanceOf(dbType);
         LazorTableInfo<S> tableInfo = LazorSqlComposerUtils.retrieveTableInfo(entityClass);
         return new LazorCrudRepositoryProxyDelegate<>(
                 entityClass,
@@ -55,6 +61,7 @@ public class LazorCrudRepositoryProxyDelegate<S> {
                 insertComposer,
                 updateComposer,
                 upsertComposer,
+                deleteComposer,
                 tableInfo
         );
     }
@@ -133,5 +140,10 @@ public class LazorCrudRepositoryProxyDelegate<S> {
             }
         }
         return result;
+    }
+
+    public void delete(NamedParameterJdbcTemplate jdbcTemplate, LazorDeleteSpec deleteSpec) {
+        final String sql = deleteSqlComposer.composeDeleteSql(tableInfo, deleteSpec);
+        jdbcTemplate.update(sql, Map.of());
     }
 }

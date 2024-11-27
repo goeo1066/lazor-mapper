@@ -1,5 +1,6 @@
 package com.github.goeo1066.lazormapper;
 
+import com.github.goeo1066.lazormapper.composers.delete.LazorDeleteSpec;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -34,6 +35,10 @@ public class LazorMapperApplication {
                     0, "John Test a", 40, "addresses"
             );
             personRepository.upsert(List.of(personInfo3), null);
+            personRepository.delete(new LazorDeleteSpec("idx = 0"));
+            for (PersonInfo personInfo : personRepository.select(LazorSelectSpec.builder().whereClause("idx = 0 or idx = 1").build())) {
+                System.out.println(personInfo);
+            }
         };
     }
 }

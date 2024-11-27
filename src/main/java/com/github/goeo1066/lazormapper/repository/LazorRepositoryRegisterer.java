@@ -1,5 +1,6 @@
 package com.github.goeo1066.lazormapper.repository;
 
+import com.github.goeo1066.lazormapper.composers.delete.LazorDeleteSpec;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import com.github.goeo1066.lazormapper.composers.upsert.LazorUpsertSpec;
 import jakarta.annotation.PostConstruct;
@@ -120,6 +121,11 @@ public class LazorRepositoryRegisterer {
                     var list = (Collection<S>) objects[0];
                     var upsertSpec = (LazorUpsertSpec<S>) objects[1];
                     return delegate.upsert(jdbcTemplate, list, upsertSpec);
+                }
+                case "delete" -> {
+                    var deleteSpec = (LazorDeleteSpec) objects[0];
+                    delegate.delete(jdbcTemplate, deleteSpec);
+                    return null;
                 }
             }
             return InvocationHandler.invokeDefault(o, method, objects);
