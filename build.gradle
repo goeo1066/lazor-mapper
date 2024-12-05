@@ -18,7 +18,16 @@ repositories {
 }
 
 dependencies {
+    // https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy
+    implementation 'net.bytebuddy:byte-buddy:1.15.10'
+
+    // https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy-agent
+    implementation 'net.bytebuddy:byte-buddy-agent:1.15.10'
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     runtimeOnly 'org.postgresql:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

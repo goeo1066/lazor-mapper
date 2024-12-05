@@ -1,9 +1,16 @@
 package com.github.goeo1066.lazormapper.repository;
 
+import com.github.goeo1066.lazormapper.composers.LazorSqlComposerUtils;
 import com.github.goeo1066.lazormapper.composers.delete.LazorDeleteSpec;
 import com.github.goeo1066.lazormapper.composers.select.LazorSelectSpec;
 import com.github.goeo1066.lazormapper.composers.upsert.LazorUpsertSpec;
 import jakarta.annotation.PostConstruct;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import net.bytebuddy.matcher.ElementMatchers;
+import net.bytebuddy.utility.AsmClassReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -21,13 +28,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.lang.NonNull;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.*;
+import java.util.*;
 
 @Configuration
 public class LazorRepositoryRegisterer {
@@ -40,6 +42,93 @@ public class LazorRepositoryRegisterer {
         this.applicationContext = applicationContext;
         this.configurableApplicationContext = configurableApplicationContext;
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+
+    public static <T, S extends T> S proxiedRecord(Class<S> clazz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        RecordComponent[] recordComponents = clazz.getRecordComponents();
+        String[] names = new String[recordComponents.length];
+        Class<?>[] params = new Class<?>[recordComponents.length];
+        Object[] defaults = new Object[recordComponents.length];
+
+        for (int i = 0; i < recordComponents.length; i++) {
+            RecordComponent recordComponent = recordComponents[i];
+            names[i] = recordComponent.getName();
+            params[i] = recordComponent.getType();
+        }
+        
+        try (var make = new ByteBuddy()
+                .with(AsmClassReader.Factory.Default.INSTANCE)
+                .rebase(clazz)
+                .visit(Advice.to(Decorator.class).on(ElementMatchers.namedOneOf(names)))
+                .make()) {
+            make.load(clazz.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+                    .getLoaded()
+                    .getConstructor(params)
+                    .newInstance(LazorSqlComposerUtils.defaultValues(params));
+            System.out.println("SS");
+        }
+//        var proxied = (S) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{Map.class}, (o, method, objects) -> {
+//            System.out.println("method name: " + method.getName());
+//            return method.invoke(o, objects);
+//        });
+
+        return null;
+
+//        RecordComponent[] recordComponents = clazz.getRecordComponents();
+//        String[] names = new String[recordComponents.length];
+//        Class<?>[] params = new Class<?>[recordComponents.length];
+//
+//        for (int i = 0; i < recordComponents.length; i++) {
+//            RecordComponent recordComponent = recordComponents[i];
+//            names[i] = recordComponent.getName();
+//            params[i] = recordComponent.getType();
+//        }
+//
+//
+//        Object[] values = LazorSqlComposerUtils.defaultValues(params);
+//        ByteBuddy byteBuddy = new ByteBuddy();
+//        var builder = byteBuddy.redefine(clazz)
+//                .visit(Advice.to(MethodInterceptor.class).on(ElementMatchers.namedOneOf(names)));
+//        try (var make = builder.make()) {
+//            var constructor = make.load(clazz.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+//                    .getLoaded()
+//                    .getConstructor(params);
+//
+//            return constructor.newInstance(values);
+//        }
+    }
+
+    public class Decorator {
+        static final Set<Object> PROXIES = new HashSet<>();
+
+        @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+        public static Object enter(
+                @Advice.This Object self,
+                @Advice.Origin Method method,
+                @Advice.AllArguments Object[] arguments) throws Throwable {
+
+            return null;
+        }
+    }
+
+    public static class MethodInterceptor {
+        public static Object intercept(@net.bytebuddy.implementation.bind.annotation.AllArguments Object[] args,
+                                       @net.bytebuddy.implementation.bind.annotation.Origin Method method) {
+            String string = method.getName();
+            System.out.println("method name: " + string);
+            return null;
+        }
+
+        @Advice.OnMethodEnter
+        public static void onEnter(@Advice.Origin String methodName) {
+            System.out.println("Entering method: " + methodName);
+        }
+
+        @Advice.OnMethodExit
+        public static void onExit(@Advice.Return Object returnValue) {
+            System.out.println("Exiting method with return: " + returnValue);
+        }
     }
 
     @PostConstruct
